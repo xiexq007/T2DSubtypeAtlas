@@ -111,9 +111,9 @@ for (object in objects) {
     # Exploratory data analysis(gene, UMI, mito count distribution) was visualized
 }
 
-# Based on EDA , filter cells with genes < 200 and > 8000, mt percent > 28%
-filtered_fluidigm <- subset(objects[[1]], subset = nFeature_RNA > 200 & nFeature_RNA < 8000 & percent.mt < 28) 
-filtered_chromium <- subset(objects[[2]], subset = nFeature_RNA > 200 & nFeature_RNA < 8000 & percent.mt < 28) 
+# Based on EDA , filter cells with genes < 200 and > 8000, mt percent > 25%
+filtered_fluidigm <- subset(objects[[1]], subset = nFeature_RNA > 200 & nFeature_RNA < 8000 & percent.mt < 25) 
+filtered_chromium <- subset(objects[[2]], subset = nFeature_RNA > 200 & nFeature_RNA < 8000 & percent.mt < 25) 
 
 # 4. Normalize ------------------------------------------------------------------------
 
