@@ -16,14 +16,14 @@ library(stringr)
 
 # HPAP Fluidigm C1
 fluidigm <- readRDS("./fluidigm.rds")
-filtered_fluidigm <- subset(fluidigm, subset = nFeature_RNA > 200 & nFeature_RNA < 8000 & percent.mt < 28) 
+filtered_fluidigm <- subset(fluidigm, subset = nFeature_RNA > 200 & nFeature_RNA < 8000 & percent.mt < 25) 
 filtered_fluidigm <- NormalizeData(filtered_fluidigm, normalization.method = "LogNormalize", scale.factor = 10000)
 hormones <- c("INS","GCG")
 RidgePlot(filtered_fluidigm,features = hormones,group.by = "method", ncol = 1)
 
 # HPAP 10X-Chromium
 chromium <- readRDS("./10xchromium.rds")
-filtered_chromium <- subset(chromium, subset = nFeature_RNA > 200 & nFeature_RNA < 8000 & percent.mt < 28) 
+filtered_chromium <- subset(chromium, subset = nFeature_RNA > 200 & nFeature_RNA < 8000 & percent.mt < 25) 
 filtered_chromium <- NormalizeData(filtered_chromium, normalization.method = "LogNormalize", scale.factor = 10000)
 RidgePlot(filtered_chromium,features = hormones,group.by = "method", ncol = 1)
 
