@@ -376,19 +376,19 @@ donor_summary <- density_df %>%
   dplyr::mutate(Subgroup = factor(Subgroup, levels = target_order)) %>% 
   dplyr::group_by(Donor, Subgroup) %>%
   dplyr::summarise(
-    Median_Pseudotime = median(Pseudotime, na.rm = TRUE),
+    Mean_Pseudotime = mean(Pseudotime, na.rm = TRUE),
     Cell_Count = n(), .groups = 'drop') %>%
   dplyr::ungroup()
 
 # Calculate the global median of the ND group as a reference baseline
 nd_median = donor_summary %>%
   filter(Subgroup == "ND") %>%
-  summarise(m = median(Median_Pseudotime, na.rm = TRUE)) %>%
+  summarise(m = median(Mean_Pseudotime, na.rm = TRUE)) %>%
   pull(m)
 
 # Visualization
 colors <- c("black", "#fb8d61","#8d9fca", "red", "#a6d753")
-ggplot(donor_summary, aes(x = Subgroup, y = Median_Pseudotime, fill = Subgroup)) +
+ggplot(donor_summary, aes(x = Subgroup, y = Mean_Pseudotime, fill = Subgroup)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.7, color = "black") +
   geom_jitter(width = 0.2, size = 3, shape = 21, color = "black") +
   scale_fill_manual(values = colors) +
