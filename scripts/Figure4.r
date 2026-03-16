@@ -314,6 +314,164 @@ DotPlot(panc_sub,
 
 
 # Figure 4E ----------
+# GSEA analysis
+
+run_gsea <- function(data, type = "ovr", group = NULL, cell = NULL, contrast = NULL) {
+
+  if (type == "ovr") {
+    df <- data[[group]][[cell]]
+  } else if (type == "ovo") {
+    df <- data[[contrast]] } 
+  
+  gene_list <- df$avg_log2FC
+  names(gene_list) = rownames(df)
+  gene_list <- sort(gene_list, decreasing = TRUE)
+ 
+  gse_res <- gseGO(geneList = gene_list, 
+                  OrgDb = org.Hs.eg.db, 
+                  keyType = "SYMBOL",
+                  ont = "BP", 
+                  pAdjustMethod = "BH", 
+                  pvalueCutoff = 1, 
+                  eps = 0,
+                  seed = 123)
+  return(gse_res)
+}
+
+# SIDD
+ovo_sidd_beta_gsea <- run_gsea(deg_subgroup_ovo, type="ovo",  contrast="beta_SIDD_vs_ND")
+ovo_sidd_alpha_gsea <- run_gsea(deg_subgroup_ovo, type="ovo", contrast="alpha_SIDD_vs_ND")
+ovo_sidd_delta_gsea <- run_gsea(deg_subgroup_ovo, type="ovo", contrast="delta_SIDD_vs_ND")
+
+# SIRD
+ovo_sird_beta_gsea <- run_gsea(deg_subgroup_ovo, type="ovo",  contrast="beta_SIRD_vs_ND")
+ovo_sird_alpha_gsea <- run_gsea(deg_subgroup_ovo, type="ovo", contrast="alpha_SIRD_vs_ND")
+ovo_sird_delta_gsea <- run_gsea(deg_subgroup_ovo, type="ovo", contrast="delta_SIRD_vs_ND")
+
+# MOD
+ovo_mod_beta_gsea <- run_gsea(deg_subgroup_ovo, type="ovo",  contrast="beta_MOD_vs_ND")
+ovo_mod_alpha_gsea <- run_gsea(deg_subgroup_ovo, type="ovo", contrast="alpha_MOD_vs_ND")
+ovo_mod_delta_gsea <- run_gsea(deg_subgroup_ovo, type="ovo", contrast="delta_MOD_vs_ND")
+
+target_terms <-  c( 'oxidative phosphorylation',
+                    'proton motive force-driven ATP synthesis',
+                    'ATP biosynthetic process',
+                    'response to copper ion',
+                    'response to insulin',
+                    'response to endoplasmic reticulum stress',
+                    'cellular response to unfolded protein',
+                    'response to topologically incorrect protein',
+                    'transcription by RNA polymerase II',
+                    'positive regulation of RNA splicing',
+                    'cellular response to chemical stress',
+                    'DNA damage response',
+                    'response to mechanical stimulus',
+                    'response to hormone',
+                    'cellular response to external stimulus'
+                   )
+
+gsea_list <- list(
+  "SIDD_alpha" = ovo_sidd_alpha_gsea,
+  "SIDD_beta"  = ovo_sidd_beta_gsea,
+  "SIDD_delta" = ovo_sidd_delta_gsea,
+  "SIRD_alpha" = ovo_sird_alpha_gsea,
+  "SIRD_beta"  = ovo_sird_beta_gsea,
+  "SIRD_delta" = ovo_sird_delta_gsea,
+  "MOD_alpha" = ovo_mod_alpha_gsea,
+  "MOD_beta"  = ovo_mod_beta_gsea,
+  "MOD_delta"  = ovo_mod_delta_gsea
+)
+
+# Extract NES, P-value, and FDR matrices
+nes_mat <- matrix(0, nrow = length(target_terms), ncol = length(gsea_list))
+p_mat   <- matrix(1, nrow = length(target_terms), ncol = length(gsea_list)) 
+fdr_mat <- matrix(1, nrow = length(target_terms), ncol = length(gsea_list)) 
+
+rownames(nes_mat) <- target_terms; colnames(nes_mat) = names(gsea_list)
+rownames(p_mat)   <- target_terms; colnames(p_mat)   = names(gsea_list)
+rownames(fdr_mat) <- target_terms; colnames(fdr_mat) = names(gsea_list)
+
+for (name in names(gsea_list)) {
+  
+  res_df <- as.data.frame(gsea_list[[name]])
+  matched_idx <- match(target_terms, res_df$Description)
+  
+  nes_val <- res_df$NES[matched_idx]
+  nes_mat[!is.na(nes_val), name] <- nes_val[!is.na(nes_val)]
+  
+  p_val <- res_df$pvalue[matched_idx]
+  p_mat[!is.na(p_val), name] <- p_val[!is.na(p_val)]
+  
+  fdr_val <- res_df$p.adjust[matched_idx]
+  fdr_mat[!is.na(fdr_val), name] <- fdr_val[!is.na(fdr_val)]
+}
+
+# Heatmap visualization
+col_fun <- colorRamp2(c(-4, 0, 4), c("#5a99d2", "white", "red"))
+Heatmap(nes_mat, 
+        name = "NES", 
+        col = col_fun,
+        cluster_rows = FALSE,       
+        cluster_columns = FALSE,   
+        rect_gp = gpar(col = "black", lwd = 0.5), 
+        cell_fun = function(j, i, x, y, width, height, fill) {
+          if (fdr_mat[i, j] < 0.05) {
+            # Asterisk for FDR < 0.05
+            grid.text("*", x, y, gp = gpar(fontsize = 15, fontface = "bold"))} 
+          else if (p_mat[i, j] < 0.05) {
+            # Plus sign for nominal p-value < 0.05
+            grid.text("+", x, y, gp = gpar(fontsize = 12))}},
+        column_split = factor(rep(c("SIDD", "SIRD","MOD"), each = 3), levels = c("SIDD", "SIRD","MOD")),
+        row_names_side = "left",
+        column_names_rot = 45,
+        row_names_gp = gpar(fontsize = 10)
+       )
+
+
+# Figure 4F ----------
+
+panc_beta <- subset(panc_integrated, cell_type == 'beta')
+panc_bulk <- AverageExpression(panc_beta, group.by = 'cell_group', layer = 'data')
+panc_bulk <- as.matrix(panc_bulk$RNA)
+
+# GSVA analysis
+gsva_results <- gsva(expr = panc_bulk, 
+                     gset.idx.list = geneset_list, # genelist for enrichment
+                     method = "gsva",
+                     kcdf = "Gaussian" )
+# Radar plot
+radar_data <- as.data.frame(t(gsva_results))
+
+# Reorder rows to match clinical progression: ND -> MARD -> MOD -> SIDD -> SIRD
+target_rows <- c('ND', 'MARD', 'MOD', 'SIDD', 'SIRD')
+radar_data <- radar_data[target_rows, ]
+
+# Define axes limits (Max/Min) for the radar chart
+max_min <- data.frame(matrix(rep(c(0.45, -0.7), ncol(radar_data)), 
+                             nrow = 2, byrow = FALSE))
+colnames(max_min) <- colnames(radar_data)
+rownames(max_min) <- c("Max", "Min")
+radar_data <- rbind(max_min, radar_data)
+
+# Visualization
+par(mar = c(1, 1, 1, 1))
+mycolor <- c('#5470c6','#91cc75','#fac858','#ee6666','#73c0de')
+radarchart(radar_data,
+           plwd = 2, 
+           plty = 1,
+           pcol = mycolor,
+           pfcol = scales::alpha(my9color,0.25),
+           cglcol = "grey", cglty = 1, cglwd = 0.8,vlcex = 0)
+
+# Add legend
+legend(
+  x = "left", legend = rownames(radar_data[-c(1,2),]), horiz = F,
+  bty = "n", pch = 20 , col = my9color,
+  text.col = "black", cex = 1, pt.cex = 1.5
+)
+
+
+# Figure 4G ----------
 
 run_pseudobulk_deseq2 <- function(seurat_obj, cell_type_name, mode = "ovo", target_group = "SIDD",
                                  ref_group = "ND", min_counts = 1, min_donors = 2) {
@@ -476,164 +634,6 @@ ggplot(plot_df, aes(x = avg_log2FC, y = log2FoldChange)) +
 direction_check <- all(sign(plot_df$avg_log2FC) == sign(plot_df$log2FoldChange))
 message("Do all overlap genes have the same direction? ", direction_check)
 mismatched_genes = plot_df %>% filter(sign(avg_log2FC) != sign(log2FoldChange))
-
-
-# Figure 4F ----------
-# GSEA analysis
-
-run_gsea <- function(data, type = "ovr", group = NULL, cell = NULL, contrast = NULL) {
-
-  if (type == "ovr") {
-    df <- data[[group]][[cell]]
-  } else if (type == "ovo") {
-    df <- data[[contrast]] } 
-  
-  gene_list <- df$avg_log2FC
-  names(gene_list) = rownames(df)
-  gene_list <- sort(gene_list, decreasing = TRUE)
- 
-  gse_res <- gseGO(geneList = gene_list, 
-                  OrgDb = org.Hs.eg.db, 
-                  keyType = "SYMBOL",
-                  ont = "BP", 
-                  pAdjustMethod = "BH", 
-                  pvalueCutoff = 1, 
-                  eps = 0,
-                  seed = 123)
-  return(gse_res)
-}
-
-# SIDD
-ovo_sidd_beta_gsea <- run_gsea(deg_subgroup_ovo, type="ovo",  contrast="beta_SIDD_vs_ND")
-ovo_sidd_alpha_gsea <- run_gsea(deg_subgroup_ovo, type="ovo", contrast="alpha_SIDD_vs_ND")
-ovo_sidd_delta_gsea <- run_gsea(deg_subgroup_ovo, type="ovo", contrast="delta_SIDD_vs_ND")
-
-# SIRD
-ovo_sird_beta_gsea <- run_gsea(deg_subgroup_ovo, type="ovo",  contrast="beta_SIRD_vs_ND")
-ovo_sird_alpha_gsea <- run_gsea(deg_subgroup_ovo, type="ovo", contrast="alpha_SIRD_vs_ND")
-ovo_sird_delta_gsea <- run_gsea(deg_subgroup_ovo, type="ovo", contrast="delta_SIRD_vs_ND")
-
-# MOD
-ovo_mod_beta_gsea <- run_gsea(deg_subgroup_ovo, type="ovo",  contrast="beta_MOD_vs_ND")
-ovo_mod_alpha_gsea <- run_gsea(deg_subgroup_ovo, type="ovo", contrast="alpha_MOD_vs_ND")
-ovo_mod_delta_gsea <- run_gsea(deg_subgroup_ovo, type="ovo", contrast="delta_MOD_vs_ND")
-
-target_terms <-  c( 'oxidative phosphorylation',
-                    'proton motive force-driven ATP synthesis',
-                    'ATP biosynthetic process',
-                    'response to copper ion',
-                    'response to insulin',
-                    'response to endoplasmic reticulum stress',
-                    'cellular response to unfolded protein',
-                    'response to topologically incorrect protein',
-                    'transcription by RNA polymerase II',
-                    'positive regulation of RNA splicing',
-                    'cellular response to chemical stress',
-                    'DNA damage response',
-                    'response to mechanical stimulus',
-                    'response to hormone',
-                    'cellular response to external stimulus'
-                   )
-
-gsea_list <- list(
-  "SIDD_alpha" = ovo_sidd_alpha_gsea,
-  "SIDD_beta"  = ovo_sidd_beta_gsea,
-  "SIDD_delta" = ovo_sidd_delta_gsea,
-  "SIRD_alpha" = ovo_sird_alpha_gsea,
-  "SIRD_beta"  = ovo_sird_beta_gsea,
-  "SIRD_delta" = ovo_sird_delta_gsea,
-  "MOD_alpha" = ovo_mod_alpha_gsea,
-  "MOD_beta"  = ovo_mod_beta_gsea,
-  "MOD_delta"  = ovo_mod_delta_gsea
-)
-
-# Extract NES, P-value, and FDR matrices
-nes_mat <- matrix(0, nrow = length(target_terms), ncol = length(gsea_list))
-p_mat   <- matrix(1, nrow = length(target_terms), ncol = length(gsea_list)) 
-fdr_mat <- matrix(1, nrow = length(target_terms), ncol = length(gsea_list)) 
-
-rownames(nes_mat) <- target_terms; colnames(nes_mat) = names(gsea_list)
-rownames(p_mat)   <- target_terms; colnames(p_mat)   = names(gsea_list)
-rownames(fdr_mat) <- target_terms; colnames(fdr_mat) = names(gsea_list)
-
-for (name in names(gsea_list)) {
-  
-  res_df <- as.data.frame(gsea_list[[name]])
-  matched_idx <- match(target_terms, res_df$Description)
-  
-  nes_val <- res_df$NES[matched_idx]
-  nes_mat[!is.na(nes_val), name] <- nes_val[!is.na(nes_val)]
-  
-  p_val <- res_df$pvalue[matched_idx]
-  p_mat[!is.na(p_val), name] <- p_val[!is.na(p_val)]
-  
-  fdr_val <- res_df$p.adjust[matched_idx]
-  fdr_mat[!is.na(fdr_val), name] <- fdr_val[!is.na(fdr_val)]
-}
-
-# Heatmap visualization
-col_fun <- colorRamp2(c(-4, 0, 4), c("#5a99d2", "white", "red"))
-Heatmap(nes_mat, 
-        name = "NES", 
-        col = col_fun,
-        cluster_rows = FALSE,       
-        cluster_columns = FALSE,   
-        rect_gp = gpar(col = "black", lwd = 0.5), 
-        cell_fun = function(j, i, x, y, width, height, fill) {
-          if (fdr_mat[i, j] < 0.05) {
-            # Asterisk for FDR < 0.05
-            grid.text("*", x, y, gp = gpar(fontsize = 15, fontface = "bold"))} 
-          else if (p_mat[i, j] < 0.05) {
-            # Plus sign for nominal p-value < 0.05
-            grid.text("+", x, y, gp = gpar(fontsize = 12))}},
-        column_split = factor(rep(c("SIDD", "SIRD","MOD"), each = 3), levels = c("SIDD", "SIRD","MOD")),
-        row_names_side = "left",
-        column_names_rot = 45,
-        row_names_gp = gpar(fontsize = 10)
-       )
-
-
-# Figure 4G ----------
-
-panc_beta <- subset(panc_integrated, cell_type == 'beta')
-panc_bulk <- AverageExpression(panc_beta, group.by = 'cell_group', layer = 'data')
-panc_bulk <- as.matrix(panc_bulk$RNA)
-
-# GSVA analysis
-gsva_results <- gsva(expr = panc_bulk, 
-                     gset.idx.list = geneset_list, # genelist for enrichment
-                     method = "gsva",
-                     kcdf = "Gaussian" )
-# Radar plot
-radar_data <- as.data.frame(t(gsva_results))
-
-# Reorder rows to match clinical progression: ND -> MARD -> MOD -> SIDD -> SIRD
-target_rows <- c('ND', 'MARD', 'MOD', 'SIDD', 'SIRD')
-radar_data <- radar_data[target_rows, ]
-
-# Define axes limits (Max/Min) for the radar chart
-max_min <- data.frame(matrix(rep(c(0.45, -0.7), ncol(radar_data)), 
-                             nrow = 2, byrow = FALSE))
-colnames(max_min) <- colnames(radar_data)
-rownames(max_min) <- c("Max", "Min")
-radar_data <- rbind(max_min, radar_data)
-
-# Visualization
-par(mar = c(1, 1, 1, 1))
-mycolor <- c('#5470c6','#91cc75','#fac858','#ee6666','#73c0de')
-radarchart(radar_data,
-           plwd = 2, 
-           plty = 1,
-           pcol = mycolor,
-           pfcol = scales::alpha(my9color,0.25),
-           cglcol = "grey", cglty = 1, cglwd = 0.8,vlcex = 0)
-
-# Add legend
-legend(
-  x = "left", legend = rownames(radar_data[-c(1,2),]), horiz = F,
-  bty = "n", pch = 20 , col = my9color,
-  text.col = "black", cex = 1, pt.cex = 1.5
-)
 
 
 # Figure 4H ----------
