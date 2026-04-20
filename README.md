@@ -1,6 +1,6 @@
 # Single-cell profiling of pancreatic islets reveals subtype-specific molecular perturbation landscape in type 2 diabetes
 
-![Main Figure](./main_figure.png)
+![Main Figure](figure.png)
 
 ## Overview
 
