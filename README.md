@@ -19,10 +19,6 @@ The analysis pipeline is organized by the corresponding figures in the manuscrip
 * **`Figure4.r`**: Analysis code used to generate Figure 4.
 * **`Figure5.r`**: Analysis code used to generate Figure 5.
 
-### `data/`
-This folder contains the clinical metadata required for analysis:
-* **`43_DonorDataForCluster.csv`**: Clinical information used for the initial clustering of T2D subtypes.
-* **`ND_T2DAll_infor.csv`**: Comprehensive clinical details for all donors (ND and all four T2D subtypes).
 
 ## Raw Data
 The raw single-cell RNA-seq datasets and clinical information used in this study were obtained from the **Human Pancreas Analysis Program (HPAP)** database: [https://hpap.pmacs.upenn.edu/](https://hpap.pmacs.upenn.edu/).
