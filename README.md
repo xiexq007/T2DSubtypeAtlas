@@ -41,7 +41,7 @@ Our study analyzed donor cohort from HPAP. The table below summarizes the donor 
 
 ### Core Software Dependencies
 
-| Language / Tool | Minimum Version | Key Packages Included |
+| Tool | Minimum Version | Key Packages Included |
 | :--- | :--- | :--- |
 | **R** | `≥ 4.1.0` (Verified on `4.5.1`) | `Seurat`, `ComplexHeatmap`, `clusterProfiler`, `Monocle2`, `Slingshot`, `ggplot2`, `dplyr` |
 | **Python** | `≥ 3.8` | `scikit-learn`, `seaborn`, `matplotlib`, `pandas`, `numpy` |
