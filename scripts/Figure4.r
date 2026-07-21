@@ -292,7 +292,7 @@ genes <- c("NDUFB1","NDUFAF3","UQCC2","NDUFA1","NDUFC1","ATP5ME", # respiration
           "SLC30A8","NEUROD1","RFX6","CAMK2G","G6PC2","ISL1", # Insulin secretion
           "FKBP11","HSPE1","FKBP2","ERO1B","HSPA8", # protein folding
           "CTRB2","CTRB1","PRSS1","CLPS","CPA1", # Pancreatic secretion
-          "TRIB3","HSPA5","CLGN","TMEM259","PPP1R15A","CREBRF", # ER stree response
+          "TRIB3","HSPA5","CLGN","TMEM259","PPP1R15A","CREBRF", # ER stress response
           "MTRNR2L1","MTRNR2L8","MTRNR2L12","BNIP3L","IFI27L2", # Apoptosis related
           "RPL38","RPS29","RPLP2","RPL31","RPS10" # cytoplasmic translation
 )
